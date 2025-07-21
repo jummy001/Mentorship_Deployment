@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const bcrypt = require('bcryptjs'); // ✅ Required for hashing
 require('dotenv').config();
+
+const User = require('./models/user'); // ✅ Import your User model
 
 const app = express();
 const PORT = 5000;
@@ -24,7 +27,7 @@ app.use(express.json());
 // ✅ Serve static files from /uploads
 app.use('/uploads', express.static(uploadPath));
 
-// ✅ Route imports (ensure these files export a router)
+// ✅ Route imports
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const matchRoutes = require('./routes/match');
@@ -52,6 +55,22 @@ if (!DB) {
 mongoose.connect(DB)
   .then(() => {
     console.log('✅ Connected to MongoDB');
+
+    // ✅ Create default admin if not present
+    User.findOne({ role: 'admin' }).then(admin => {
+      if (!admin) {
+        const hashed = bcrypt.hashSync('admin123', 10);
+        User.create({
+          fullName: 'Admin',
+          email: 'admin@example.com',
+          password: hashed,
+          role: 'admin'
+        }).then(() => {
+          console.log('🛡️ Default admin created (admin@example.com / admin123)');
+        });
+      }
+    });
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
     });
